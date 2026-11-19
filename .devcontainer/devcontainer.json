@@ -1,5 +1,5 @@
 {
-  "name": "PokéTeam Dev Container (Haskell + Node.js)",
+  "name": "Power System (Haskell + React)",
   "image": "mcr.microsoft.com/devcontainers/universal:2",
   "features": {
     "ghcr.io/devcontainers/features/haskell:1": {
@@ -18,11 +18,14 @@
         "haskell.haskell",
         "justusadam.language-haskell",
         "bradlc.vscode-tailwindcss",
-        "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode"
       ]
     }
   },
   "forwardPorts": [8080, 5173],
-  "postCreateCommand": "cd backend && cabal update"
+  "portsAttributes": {
+    "5173": { "label": "Power System", "onAutoForward": "notify" },
+    "8080": { "label": "API Haskell", "onAutoForward": "silent" }
+  },
+  "postCreateCommand": "npm --prefix frontend ci && cd backend && cabal update && cabal build"
 }

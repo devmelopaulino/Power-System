@@ -1,122 +1,76 @@
-# 🔴 PokéTeam — Pokédex e Team Builder com Backend em Haskell e MySQL
+# Power System
 
-Projeto acadêmico completo integrando um backend funcional desenvolvido em **Haskell** com **Servant**, persistência de dados em **MySQL** (com suporte automático a modo **In-Memory** se o MySQL não estiver instalado) e frontend moderno em **React + Tailwind CSS**.
+Estrutura inicial para um gerenciador de treinos, com uma página **Hello World** em React e uma rota HTTP em Haskell.
 
----
-
-## 💡 Não tem o MySQL instalado? Sem problemas!
-
-O backend do PokéTeam foi arquitetado com um **Modo de Contingência Em Memória (In-Memory)**:
-- Se você **não tiver o MySQL rodando**, o backend detecta isso automaticamente na inicialização e ativa o repositório em memória com todos os **151 Pokémon da 1ª Geração pré-carregados**.
-- Todas as rotas da API (`/pokemon`, `/teams`, `/health`, etc.) e validações funcionam **100% sem precisar de nenhum banco de dados externo instalado**.
-- Quando você instalar ou subir o MySQL futuramente, o backend automaticamente passa a persistir no banco real sem nenhuma alteração de código!
-
----
-
-## 📁 Estrutura do Repositório
+## Estrutura
 
 ```text
-poketeam/
-│
-├── backend/
-│   ├── app/
-│   │   └── Main.hs                     # Inicialização do servidor Warp (com fallback automático)
-│   ├── src/
-│   │   ├── Models/
-│   │   │   ├── Pokemon.hs              # Tipos algébricos (Pokemon, PokemonType)
-│   │   │   └── Team.hs                 # Modelagem do Time, DTOs e erros (Either)
-│   │   ├── Services/
-│   │   │   ├── PokemonService.hs       # Regras puras: busca, filtros e ordenação
-│   │   │   └── TeamService.hs          # Regras puras: validações, médias com foldr e limites
-│   │   ├── Database/
-│   │   │   ├── Connection.hs           # Conexão com MySQL via variáveis de ambiente
-│   │   │   ├── PokemonRepository.hs    # Consultas SQL com mysql-simple
-│   │   │   └── InMemoryRepository.hs   # Repositório puro em memória com os 151 Pokémon
-│   │   └── API/
-│   │       └── Routes.hs               # Rotas e handlers REST com Servant e CORS
-│   ├── test/
-│   │   └── Spec.hs                     # Suíte de testes dos 7 cenários acadêmicos
-│   └── poketeam.cabal                  # Manifesto de compilação Cabal
-│
-├── frontend/                           # Aplicação web React + Tailwind CSS
-│   ├── src/
-│   │   ├── services/
-│   │   │   └── haskellBackendApi.js    # Cliente HTTP para a API Haskell
-│   │   └── ...
-│   └── package.json
-│
-├── database/
-│   ├── schema.sql                      # DDL do MySQL (pokemon, types, teams, team_pokemon)
-│   └── seed.sql                        # Carga dos 151 Pokémon com status oficiais
-│
-└── README.md
+.devcontainer/devcontainer.json  # Ambiente do Codespaces
+backend/
+  app/Main.hs                   # Servidor Warp, porta 8080
+  src/API/Routes.hs             # GET /hello
+  power-system.cabal            # Dependências e executável
+frontend/
+  src/App.jsx                   # Página Hello World
+  src/main.jsx                  # Entrada React
+  src/index.css                 # Tailwind CSS
+  vite.config.js                # Servidor e proxy /api
 ```
 
----
+A base usa React, Vite e Tailwind CSS no frontend; Servant e Warp no backend. Não há banco de dados ou regras de negócio nesta etapa.
 
-## 🧠 Conceitos de Programação Funcional Demonstrados
+## Executar localmente
 
-| Conceito Haskell | Onde foi aplicado no código | Detalhes da Implementação |
-|---|---|---|
-| **Tipos Algébricos (`data` e `newtype`)** | `Models/Pokemon.hs`, `Models/Team.hs` | Modelagem segura de domínio (`Pokemon`, `Team`, `TeamStats`, `TeamValidationError`). |
-| **Funções Puras e Imutabilidade** | `Services/TeamService.hs` | As funções não produzem efeitos colaterais. `addPokemonToTeam` e `removePokemonFromTeam` retornam novas estruturas sem alterar as antigas. |
-| **Pattern Matching** | `Services/PokemonService.hs`, `Services/TeamService.hs` | Desconstrução de listas (`[]` e `p:ps`), tipos `Maybe` (`Just` / `Nothing`) e `Either` (`Left` / `Right`). |
-| **Guardas (`|`)** | `validateTeamLimit`, `searchPokemon` | Validação de limites e condições de maneira declarativa e legível. |
-| **Recursividade Pura** | `teamSize`, `sortByAttack` | Contagem recursiva de elementos e ordenação pura por Ataque via algoritmo **Quicksort**. |
-| **Higher-Order Functions (`map`, `filter`, `foldr`)** | `Services/TeamService.hs`, `Services/PokemonService.hs` | Agregação de estatísticas (`calculateAverageBy` via `foldr`), conversão de strings (`map toLower`) e filtragens (`filterByType`). |
-| **Tipo `Maybe`** | `searchPokemon`, `findById`, `PokemonRepository.hs` | Tratamento seguro de ausência de dados sem exceções de ponteiro nulo. |
-| **Tipo `Either`** | `addPokemonToTeam`, `validateTeamLimit` | Controle de erros explícito (`Left TeamFullError`, `Left DuplicatePokemonError`). |
-| **Mônada `IO`** | `Connection.hs`, `PokemonRepository.hs`, `Main.hs` | Isolamento estrito de efeitos colaterais para acesso a banco de dados e servidor web. |
+Requisitos: Node.js com npm, GHC e Cabal.
 
----
+Em um terminal, inicie o backend:
 
-## 🧪 Como Rodar os Testes das Regras de Negócio (Etapa 4)
-
-Você pode compilar e executar o teste acadêmico imediatamente em qualquer máquina com GHC:
-
-```powershell
+```sh
 cd backend
-ghc -isrc test/Spec.hs -o test/Spec.exe
-.\test\Spec.exe
+cabal update
+cabal run power-system-server
 ```
 
-Todos os 7 cenários serão testados e validados!
+Em outro terminal, instale as dependências e inicie o frontend:
 
----
-
-## 🚀 Como Rodar o Projeto
-
-### Opção 1: Sem MySQL (Modo Em Memória Automático)
-Basta iniciar a API:
-```powershell
-cd backend
-cabal run poketeam-server
-```
-O servidor detectará a ausência do banco e inicializará o **InMemoryRepository** com os 151 Pokémon.
-
-### Opção 2: Com MySQL via Docker (Recomendado para quem não quer instalar o MySQL na máquina)
-Se tiver Docker instalado, suba o MySQL em 5 segundos com:
-```powershell
-docker run --name poketeam-mysql -e MYSQL_DATABASE=poketeam_db -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 -d mysql:8.0
-```
-E importe os dados:
-```powershell
-docker exec -i poketeam-mysql mysql -uroot poketeam_db < database/schema.sql
-docker exec -i poketeam-mysql mysql -uroot poketeam_db < database/seed.sql
-```
-
-### Opção 3: Com MySQL Server Nativo
-Importe os arquivos no MySQL Workbench:
-```sql
-SOURCE database/schema.sql;
-SOURCE database/seed.sql;
-```
-
----
-
-### Iniciar o Frontend em React
-```powershell
+```sh
 cd frontend
+npm ci
 npm run dev
 ```
-Acesse no navegador: [http://localhost:5173](http://localhost:5173).
+
+Abra http://localhost:5173 para ver a página Hello World.
+
+O backend responde `Hello World` em http://localhost:8080/hello. Durante o desenvolvimento, o Vite encaminha http://localhost:5173/api/hello para essa rota. Use o prefixo `/api` nas futuras chamadas do frontend para funcionar também no Codespaces. A página inicial é estática e não depende da API.
+
+A variável de ambiente `PORT` permite alterar a porta do backend (padrão: `8080`). Se mudar essa porta, ajuste também o destino do proxy em `frontend/vite.config.js`.
+
+## Codespaces
+
+Ao criar ou reconstruir o container, a configuração instala as dependências do frontend e compila o backend. Depois, execute os dois comandos de inicialização em terminais separados:
+
+```sh
+cd backend && cabal run power-system-server
+```
+
+```sh
+cd frontend && npm run dev
+```
+
+Abra a porta **5173** na aba **Ports** do Codespaces. A API é acessada pelo proxy `/api` no mesmo endereço do frontend.
+
+As alterações locais chegam ao Codespaces após commit e push para o GitHub e `git pull` no Codespaces. Para aplicar mudanças em `.devcontainer`, reconstrua o container.
+
+## Verificar a base
+
+```sh
+cd frontend
+npm run build
+```
+
+```sh
+cd backend
+cabal build
+```
+
+O build do frontend gera `frontend/dist`. `npm run preview` permite conferir esse build estático; o proxy `/api` está configurado apenas no servidor de desenvolvimento.
