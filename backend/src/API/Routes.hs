@@ -6,9 +6,19 @@ module API.Routes (API, app) where
 
 import Data.Text (Text)
 import Network.Wai (Application)
-import Servant (Get, PlainText, Proxy (..), serve, (:>))
+import Servant
+  ( Get, PlainText, Proxy (..), Raw, serve, serveDirectoryFileServer
+  , (:<|>) (..), (:>)
+  )
 
-type API = "hello" :> Get '[PlainText] Text
+type HelloAPI = Get '[PlainText] Text
 
-app :: Application
-app = serve (Proxy :: Proxy API) (pure "Hello World")
+type API = "api" :> "hello" :> HelloAPI
+      :<|> "hello" :> HelloAPI
+      :<|> Raw
+
+app :: FilePath -> Application
+app staticDirectory = serve (Proxy :: Proxy API)
+  (pure ("Hello World" :: Text)
+    :<|> pure ("Hello World" :: Text)
+    :<|> serveDirectoryFileServer staticDirectory)

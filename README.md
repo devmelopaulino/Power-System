@@ -73,4 +73,20 @@ cd backend
 cabal build
 ```
 
-O build do frontend gera `frontend/dist`. `npm run preview` permite conferir esse build estático; o proxy `/api` está configurado apenas no servidor de desenvolvimento.
+O build do frontend gera `frontend/dist`. `npm run preview` permite conferir esse build estático; o proxy do Vite é usado apenas no servidor de desenvolvimento.
+
+## Publicar no Railway
+
+O `Dockerfile` na raiz compila o React e o Haskell. Um único serviço entrega a página em `/` e a API em `/api/hello` (com `/hello` mantido para o teste direto).
+
+Crie um projeto no Railway com este repositório, mantendo a pasta raiz do serviço em `/`. O Railway detecta o `Dockerfile`; não configure comandos de build ou inicialização adicionais. Em **Settings → Networking**, use **Generate Domain** para obter o endereço público. Configure a verificação de saúde do serviço em `/api/hello`, com timeout de 120 segundos.
+
+A porta vem da variável `PORT` do Railway. O diretório da página compilada é definido por `STATIC_DIR` no container. Não é necessário banco de dados nesta versão.
+
+Para publicar os arquivos locais com a CLI do Railway, depois de vincular o projeto e o serviço:
+
+```sh
+railway up --service power-system
+```
+
+Para testar o modo de produção local sem Docker, execute `npm ci` e `npm run build` em `frontend`, depois `cabal run power-system-server` em `backend`. Abra http://localhost:8080: o Haskell entrega a página compilada e a API pelo mesmo endereço.

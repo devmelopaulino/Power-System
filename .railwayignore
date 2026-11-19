@@ -1,0 +1,11 @@
+.git
+frontend/node_modules
+frontend/dist
+backend/dist-newstyle
+**/*.exe
+**/*.o
+**/*.hi
+.env
+.env.*
+**/.env
+**/.env.*
