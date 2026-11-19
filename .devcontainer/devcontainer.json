@@ -26,5 +26,5 @@
     "5173": { "label": "Power System", "onAutoForward": "notify" },
     "8080": { "label": "API Haskell", "onAutoForward": "silent" }
   },
-  "postCreateCommand": "npm --prefix frontend ci && cd backend && cabal update && cabal build"
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y libpq-dev pkg-config && npm --prefix frontend ci && cd backend && cabal update && cabal build"
 }

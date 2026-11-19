@@ -2,6 +2,7 @@ module Main (main) where
 
 import API.Routes (app)
 import Data.Maybe (fromMaybe)
+import Database.Connection (initializeDatabase)
 import Network.Wai.Handler.Warp (run)
 import System.Environment (lookupEnv)
 import Text.Read (readMaybe)
@@ -15,5 +16,6 @@ main = do
     Just value -> case readMaybe value of
       Just number | number > 0 && number <= 65535 -> pure number
       _ -> ioError (userError "PORT deve ser um numero entre 1 e 65535.")
+  database <- initializeDatabase
   putStrLn $ "Power System: http://localhost:" ++ show port
-  run port (app staticDirectory)
+  run port (app database staticDirectory)
