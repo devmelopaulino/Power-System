@@ -1,0 +1,8 @@
+const path = require('node:path')
+const fs = require('node:fs')
+const esbuild = require('esbuild')
+const directory = path.resolve(__dirname, '../../.local/test-output')
+fs.mkdirSync(directory, {recursive:true})
+const outfile = path.join(directory,'session-integrity.cjs')
+esbuild.buildSync({entryPoints:[path.join(__dirname,'session-integrity.test.jsx')],outfile,bundle:true,platform:'node',format:'cjs',jsx:'automatic',loader:{'.css':'empty'}})
+require(outfile)

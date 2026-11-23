@@ -3,7 +3,7 @@ name: power-system
 version: 0.1.0.0
 synopsis: Base Haskell do Power System
 build-type: Simple
-extra-source-files: migrations/*.sql
+extra-source-files: migrations/*.sql, test/*.sql
 
 common common-options
   default-language: Haskell2010
@@ -14,6 +14,13 @@ library
   hs-source-dirs: src
   exposed-modules: API.Routes
                  , Database.Connection
+                 , Auth.Google
+                 , Auth.Store
+                 , API.Auth
+                 , API.ReliableWrite
+                 , Training.Profile
+                 , Training.WeightStore
+                 , App.Time
   build-depends: base >= 4.14 && < 5
                , servant >= 0.19
                , servant-server >= 0.19
@@ -23,6 +30,14 @@ library
                , bytestring >= 0.10
                , postgresql-simple >= 0.7 && < 0.8
                , transformers >= 0.5
+               , cookie >= 0.4
+               , crypton >= 1.0
+               , ram >= 0.22
+               , http-client >= 0.7
+               , http-client-tls >= 0.3
+               , http-types >= 0.12
+               , network-uri >= 2.6
+               , time >= 1.9
 
 executable power-system-server
   import: common-options
@@ -32,3 +47,27 @@ executable power-system-server
   build-depends: base >= 4.14 && < 5
                , power-system
                , warp >= 3.3
+
+executable power-system-db
+  import: common-options
+  hs-source-dirs: app
+  main-is: DatabaseMain.hs
+  build-depends: base >= 4.14 && < 5
+               , power-system
+
+test-suite power-system-auth-test
+  import: common-options
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: AuthSpec.hs
+  other-modules: TrainingSpec
+  build-depends: base >= 4.14 && < 5
+               , power-system
+               , text
+               , bytestring
+               , aeson
+               , postgresql-simple
+               , wai
+               , wai-extra
+               , time
+               , http-types

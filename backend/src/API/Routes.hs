@@ -4,6 +4,7 @@
 
 module API.Routes (API, app) where
 
+import API.Auth (AuthContext, authMiddleware)
 import Data.Text (Text)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (Value, encode, object, (.=))
@@ -22,8 +23,8 @@ type API = "api" :> "hello" :> HelloAPI
       :<|> "api" :> "health" :> Get '[JSON] Value
       :<|> Raw
 
-app :: Maybe Database -> FilePath -> Application
-app database staticDirectory = serve (Proxy :: Proxy API)
+app :: Maybe Database -> AuthContext -> FilePath -> Application
+app database auth staticDirectory = authMiddleware auth $ serve (Proxy :: Proxy API)
   (pure ("Hello World" :: Text)
     :<|> pure ("Hello World" :: Text)
     :<|> healthHandler database

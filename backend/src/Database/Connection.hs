@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Database.Connection
-  ( Database, initializeDatabase, withDatabase, databaseHealthy ) where
+  ( Database, initializeDatabase, withDatabase, withDatabaseTransaction, transactionDatabase, databaseHealthy ) where
 
 import Control.Concurrent (threadDelay)
 import Control.Exception (AsyncException, SomeException, bracket, fromException, tryJust)
@@ -18,7 +18,7 @@ import System.Environment (lookupEnv)
 import System.Exit (die)
 
 -- Sem Show para evitar que a URL com senha apareça nos logs.
-newtype Database = Database BS.ByteString
+data Database = Database BS.ByteString | TransactionDatabase Connection
 
 trySynchronous :: IO a -> IO (Either SomeException a)
 trySynchronous = tryJust synchronous
@@ -29,6 +29,14 @@ trySynchronous = tryJust synchronous
 
 withDatabase :: Database -> (Connection -> IO a) -> IO a
 withDatabase (Database connectionString) = bracket (connectPostgreSQL connectionString) close
+withDatabase (TransactionDatabase connection) = (\action -> action connection)
+
+withDatabaseTransaction :: Database -> (Connection -> IO a) -> IO a
+withDatabaseTransaction (TransactionDatabase connection) action = action connection
+withDatabaseTransaction database action = withDatabase database (\connection -> withTransaction connection (action connection))
+
+transactionDatabase :: Connection -> Database
+transactionDatabase = TransactionDatabase
 
 initializeDatabase :: IO (Maybe Database)
 initializeDatabase = do
@@ -71,17 +79,21 @@ migrate database directory = withDatabase database $ \connection -> withTransact
   -- Serializa migracoes quando dois deployments iniciam ao mesmo tempo.
   void (query_ connection "SELECT 1 FROM pg_advisory_xact_lock(731946201)" :: IO [Only Int])
   void $ execute_ connection "CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, aplicada_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)"
-  applied <- query_ connection "SELECT version FROM schema_migrations WHERE version = 1" :: IO [Only Int]
-  unless (applied == [Only 1]) $ do
-    script <- BS.readFile (directory ++ "/001_initial.sql")
-    void $ execute_ connection (Query script)
-    void $ execute connection "INSERT INTO schema_migrations (version) VALUES (?)" (Only (1 :: Int))
+  mapM_ (applyMigration connection)
+    [(1, "001_initial.sql"), (2, "002_google_auth.sql"), (3, "003_student_accounts.sql"), (4, "004_self_registration.sql"), (5, "005_pending_student_signup.sql"), (6, "006_student_training.sql"), (7, "007_athlete_data.sql"), (8, "008_athlete_weight_analysis.sql"), (9, "009_session_integrity.sql"), (10, "010_session_history.sql"), (11, "011_reliable_writes.sql")]
+  where
+    applyMigration connection (version, filename) = do
+      applied <- query_ connection "SELECT version FROM schema_migrations" :: IO [Only Int]
+      unless (Only version `elem` applied) $ do
+        script <- BS.readFile (directory ++ "/" ++ filename)
+        void $ execute_ connection (Query script)
+        void $ execute connection "INSERT INTO schema_migrations (version) VALUES (?)" (Only (version :: Int))
 
 databaseHealthy :: Database -> IO Bool
 databaseHealthy database = do
   result <- trySynchronous $ withDatabase database $ \connection -> do
     void $ execute_ connection "SET statement_timeout = '5s'"
-    query_ connection "SELECT version FROM schema_migrations WHERE version = 1" :: IO [Only Int]
+    query_ connection "SELECT version FROM schema_migrations WHERE version IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11) ORDER BY version" :: IO [Only Int]
   pure $ case result of
-    Right [Only 1] -> True
+    Right [Only 1, Only 2, Only 3, Only 4, Only 5, Only 6, Only 7, Only 8, Only 9, Only 10, Only 11] -> True
     _ -> False

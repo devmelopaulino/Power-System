@@ -1,4 +1,7 @@
 .git
+.local
+**/client_secret*
+**/dist-*
 **/node_modules
 **/dist
 **/dist-newstyle

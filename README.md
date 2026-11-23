@@ -115,22 +115,77 @@ Nenhum dado pessoal de exemplo é inserido. A estrutura ainda não inclui autent
 
 `GET /api/health` consulta o banco e retorna HTTP 200 com `{"status":"ok","database":"connected"}` quando a conexão e a migração estão disponíveis. Retorna HTTP 503 quando o banco está indisponível ou não foi configurado. Essa deve ser a rota de saúde no Railway.
 
-### Desenvolvimento local
+### Desenvolvimento e testes locais no Windows
 
-Use um banco PostgreSQL separado do ambiente de produção. `backend/.env.example` documenta a variável; o Cabal não carrega arquivos `.env` automaticamente. Antes de iniciar o backend, exporte a URL no terminal:
+O banco de desenvolvimento funciona exclusivamente em `127.0.0.1:5433`, com o nome `power_system_dev`. Ele é separado do PostgreSQL do Railway. Os scripts usam a instalação do PostgreSQL em `C:/ghcup/msys64/mingw64/bin`; para outra instalação, informe `-PostgresBin 'C:/caminho/para/bin'`.
+
+Na pasta principal do projeto, abra um PowerShell e execute:
 
 ```powershell
-$env:DATABASE_URL = 'postgresql://postgres:SUA_SENHA@localhost:5432/power_system'
-cd backend
-cabal run power-system-server
+.\scripts\local-db.ps1 -Action backend
 ```
 
-No Bash/Codespaces:
+O comando inicia o banco local, cria as tabelas pelo Haskell, adiciona um treinador e três alunos fictícios e inicia a API na porta 8080. Pare o backend antigo com `Ctrl+C` antes de iniciar este comando se a porta já estiver ocupada.
+
+Em outro terminal:
+
+```powershell
+cd frontend
+npm run dev
+```
+
+Abra http://localhost:5173. Para conferir a conexão do backend com o banco local, acesse http://localhost:8080/api/health ou http://localhost:5173/api/health. O resultado esperado é `{"status":"ok","database":"connected"}`.
+
+Para apenas preparar o banco, sem iniciar a API:
+
+```powershell
+.\scripts\local-db.ps1 -Action start
+```
+
+Para executar os testes de integridade das tabelas:
+
+```powershell
+.\scripts\local-db.ps1 -Action test
+```
+
+Os testes verificam o vínculo entre aluno e treinador, e-mail duplicado, nome vazio e exclusão de treinador com alunos. As inserções feitas pelos testes são revertidas. Os três alunos fictícios são mantidos no banco local para desenvolver as telas; iniciar novamente não duplica esses registros. As telas de cadastro e consulta ainda precisam ser implementadas.
+
+Para ver e parar o serviço local:
+
+```powershell
+.\scripts\local-db.ps1 -Action status
+.\scripts\local-db.ps1 -Action stop
+```
+
+Parar o serviço preserva os dados. Ele não é instalado como um serviço automático do Windows: use o script para iniciá-lo após reiniciar o PC.
+
+### Visualizar o banco local
+
+No DBeaver ou pgAdmin, crie uma conexão PostgreSQL com:
+
+- Host: `127.0.0.1`
+- Porta: `5433`
+- Banco: `power_system_dev`
+- Usuário: `power_system_dev`
+- Senha: consulte `.local/postgres/connection.json` no seu computador.
+
+Esse arquivo contém uma senha aleatória exclusiva do desenvolvimento. A pasta `.local` guarda o banco e suas credenciais e está excluída do Git, do envio ao Railway e da imagem Docker. Não compartilhe seu conteúdo.
+
+### Outros ambientes
+
+No Linux/Codespaces, use um PostgreSQL de desenvolvimento separado e exporte a URL antes de executar o backend. `backend/.env.example` documenta a variável; o Cabal não carrega arquivos `.env` automaticamente.
 
 ```sh
 export DATABASE_URL='postgresql://postgres:SUA_SENHA@localhost:5432/power_system'
 cd backend
+cabal run power-system-db
 cabal run power-system-server
 ```
 
-Sem `DATABASE_URL`, o desenvolvimento local mantém a página e as rotas Hello World funcionando, mas a verificação do banco retorna 503. No Railway, a variável é obrigatória: a aplicação encerra se a configuração ou a migração falhar. A pasta de migrações pode ser alterada por `MIGRATIONS_DIR` (padrão: `migrations`, a partir da pasta `backend` ou `/app` no container).
+Sem `DATABASE_URL`, a página e as rotas Hello World continuam funcionando localmente, mas a verificação do banco retorna 503. No Railway, a variável é obrigatória. `MIGRATIONS_DIR` pode alterar a pasta das migrações (padrão: `migrations`, a partir da pasta `backend` ou `/app` no container).
+
+## Login e cadastro
+
+Acesse `/#/entrar` ou `/#/cadastro`. O cadastro oferece os perfis **treinador** e **aluno** com Google. Treinadores criam sua conta e usam `/#/alunos` para gerar um link de convite. O aluno abre o link e entra com Google. Depois, preenche o nome e, opcionalmente, o peso corporal numa tela intermediária e confirma o cadastro para acessar seus treinos. Depois, entra em `/#/meus-treinos`. O Haskell controla os perfis e as permissões; a prescrição fica separada da aba Dados do Atleta, com pesagens registradas pelo aluno.
+
+Veja o passo a passo em [Login com Google](docs/google-login.md), incluindo configuração local, variáveis no Railway e testes. O JSON das credenciais e as configurações da pasta `.local` não devem ser publicados.

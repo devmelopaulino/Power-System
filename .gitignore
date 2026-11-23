@@ -19,6 +19,8 @@ node_modules/
 *.log
 
 # Variáveis de ambiente
+.local/
+client_secret*
 .env
 .env.*
 !.env.example
