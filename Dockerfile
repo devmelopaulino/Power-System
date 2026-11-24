@@ -21,7 +21,8 @@ COPY backend/test/database.sql /checks/database.sql
 USER postgres
 RUN initdb -D /tmp/power-system-test --auth=trust > /dev/null \
     && pg_ctl -D /tmp/power-system-test -o "-c listen_addresses='' -k /tmp" -w start \
-    && psql -h /tmp -d postgres -v ON_ERROR_STOP=1 -f /checks/schema.sql -f /checks/auth.sql -f /checks/accounts.sql -f /checks/enrollment.sql -f /checks/pending.sql -f /checks/training.sql -f /checks/athlete.sql -f /checks/weight-analysis.sql -f /checks/session-integrity.sql -f /checks/session-history.sql -f /checks/reliable-writes.sql -f /checks/database.sql \
+    && psql -h /tmp -d postgres -v ON_ERROR_STOP=1 --single-transaction -f /checks/schema.sql -f /checks/auth.sql -f /checks/accounts.sql -f /checks/enrollment.sql -f /checks/pending.sql -f /checks/training.sql -f /checks/athlete.sql -f /checks/weight-analysis.sql -f /checks/session-integrity.sql -f /checks/session-history.sql -f /checks/reliable-writes.sql \
+    && psql -h /tmp -d postgres -v ON_ERROR_STOP=1 -f /checks/database.sql \
     && pg_ctl -D /tmp/power-system-test -m fast -w stop \
     && touch /tmp/database-verified
 
